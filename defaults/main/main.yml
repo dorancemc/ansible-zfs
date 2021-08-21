@@ -1,0 +1,38 @@
+---
+
+zfsutils_packages:
+  - zfsutils-linux
+
+zfs_create_pools: true
+zfs_pools: #[]
+  - name: data
+    devices:
+      - /dev/host-vg/zfsdata
+    action: create
+    state: present
+    options: 
+      - "-m /data" #define a mount point
+      - "-o cachefile=none" #Controls the location of where the pool configuration is stored
+
+zfs_default_config: 
+  ZFS_MOUNT: 'yes'
+  ZFS_UNMOUNT: 'yes'
+  ZFS_AUTOIMPORT_TIMEOUT: '30'
+  ZFS_SHARE: 'no'
+  ZFS_UNSHARE: 'no'
+  ZPOOL_IMPORT_ALL_VISIBLE: 'no'
+  VERBOSE_MOUNT: 'no'
+  DO_OVERLAY_MOUNTS: 'no'
+  ZPOOL_IMPORT_OPTS: ""
+  MOUNT_EXTRA_OPTIONS: ""
+  ZFS_DKMS_ENABLE_DEBUG: 'no'
+  ZFS_DKMS_DISABLE_STRIP: 'no'
+  ZFS_INITRD_PRE_MOUNTROOT_SLEEP: '0'
+  ZFS_INITRD_POST_MODPROBE_SLEEP: '0'
+
+zfs_performance_tuning:
+  zfs_prefetch_disable: 1
+  zfs_txg_timeout: 5
+  zfs_arc_max: "{{ (ansible_memtotal_mb | int * 1024 * 1024 * 0.5) | round | int }}" # 1/2 total system memory
+  zfs_arc_meta_limit: "{{ (ansible_memtotal_mb | int * 1024 * 1024 * 0.125) | round | int }}" # 1/4 zfs_arc_max
+  zfs_arc_min: "{{ (ansible_memtotal_mb | int * 1024 * 1024 * 0.0625) | round | int }}" # 1/2 zfs_arc_meta_limit

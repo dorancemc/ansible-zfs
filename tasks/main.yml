@@ -1,0 +1,49 @@
+---
+
+- name: installing packages required
+  become: true
+  apt:
+    name: "{{ zfsutils_packages }}"
+    state: present
+
+- name: configuring zfs
+  become: true
+  template:
+    src: zfs.j2
+    dest: /etc/default/zfs
+    owner: root
+    group: root
+    mode: 0644
+
+- name: manage_zfs | checking existing zpool(s)
+  shell: "zpool list | awk 'FNR >1' | awk '{print $1}'"
+  register: zpools
+  when: zfs_pools is defined
+
+- name: manage_zfs | Gather ZPool Status
+  shell: zpool status
+  register: zpool_devices
+  when: zfs_pools is defined
+
+- name: manage_zfs | creating basic zpool(s)
+  command: "zpool create {{ item.options | join (' ') if item.options is defined else '' }} {{ item.name }} {{ item.devices|join (' ') }}"
+  become: true
+  register: zpool_created
+  with_items: "{{ zfs_pools }}"
+  when: >
+        zfs_pools is defined and
+        zfs_create_pools and
+        item.name not in zpools.stdout and
+        item.state == "present" and
+        item.devices[0] not in zpool_devices.stdout and
+        item.action|lower == "create"
+
+
+- name: tune_zfs | tuning zfs performance
+  become: true
+  template:
+    src: zfs.conf.j2
+    dest: /etc/modprobe.d/zfs.conf
+    owner: root
+    group: root
+    mode: 0644
